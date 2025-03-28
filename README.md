@@ -10,4 +10,5 @@
 ---
 
 ## Circuit
+\* I actually connected TX and RX the wrong way here, it should be TX -> D11, RX -> D10
 ![circuit](assets/circuit.png)

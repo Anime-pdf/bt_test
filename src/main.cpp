@@ -19,6 +19,9 @@ unsigned long lastMessage = 0;
 uint8_t receivedBytes[64];
 uint8_t receivedIndex = 0;
 
+uint8_t sentBytes[64];
+uint8_t sentIndex = 0;
+
 void printByteArray(const uint8_t* arr, size_t length, const char* prefix) {
   Serial.print(prefix);
   for (size_t i = 0; i < length; i++) {
@@ -49,7 +52,6 @@ void loop()
     sprintf(message, "Hello! Your random number: %d", rand() % 1000 + 1); // [1;1000]
     size_t encodedLen = encoder.encodeString(message, encodedMessage);
 
-    Serial.println("Sending encoded message:");
     printByteArray(encodedMessage, encodedLen, "Sent bytes: ");
 
     BTserial.write(encodedMessage, encodedLen);
@@ -74,7 +76,6 @@ void loop()
   }
   
   if (receivedIndex > 0) {
-    Serial.println("Complete received byte sequence:");
     printByteArray(receivedBytes, receivedIndex, "Received bytes: ");
     
     BTserial.write(receivedBytes, receivedIndex);
@@ -82,13 +83,22 @@ void loop()
     receivedIndex = 0;
   }
 
-  if (Serial.available())
+  while (Serial.available())
   {
-    uint8_t serialByte = Serial.read();
-    BTserial.write(serialByte);
+    uint8_t incomingByte = Serial.read();
     
-    Serial.print("Sent from Serial: 0x");
-    if (serialByte < 0x10) Serial.print("0");
-    Serial.println(serialByte, HEX);
+    if (sentIndex < sizeof(sentBytes)) {
+      sentBytes[sentIndex++] = incomingByte;
+    }
+
+    printByteArray(sentBytes, sentIndex, "Serial buffer: ");
+  }
+
+  if (sentIndex >= sizeof(sentBytes) || sentBytes[sentIndex-1] == 0x0a) { // overflow or NL (LF)
+    printByteArray(sentBytes, sentIndex, "Sent from serial: ");
+    
+    BTserial.write(sentBytes, sentIndex);
+    
+    sentIndex = 0;
   }
 }
